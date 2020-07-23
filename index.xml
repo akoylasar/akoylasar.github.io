@@ -6,20 +6,9 @@
     <description>Recent content on Whatever Flavour It Happens To Be</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en-us</language>
-    <lastBuildDate>Thu, 16 Jul 2020 19:21:24 +0200</lastBuildDate>
     
 	<atom:link href="https://akoylasar.github.io/index.xml" rel="self" type="application/rss+xml" />
     
-    
-    <item>
-      <title>Derivation of view and common projection matrices</title>
-      <link>https://akoylasar.github.io/posts/view-projection-graphics/</link>
-      <pubDate>Thu, 16 Jul 2020 19:21:24 +0200</pubDate>
-      
-      <guid>https://akoylasar.github.io/posts/view-projection-graphics/</guid>
-      <description>Introduction In this article I am going to derive some of the most commonly used transformations in nealy all graphics applications.
-My goal is to explain this as simply as I can without mathematical loss. Of course the proofs won&#39;t follow the standard mathematical rigour which I think in our case should be perfectly OK. Also in order to keep the article short I would make this assumption that the readers are more or less familiar with matrices and linear transformations.</description>
-    </item>
     
   </channel>
 </rss>
