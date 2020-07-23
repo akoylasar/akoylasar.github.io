@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Derivation of view and common projection matrices // Whatever Flavour It Happens To Be</title>
+
+    <meta charset="utf-8">
+    <meta http-equiv="content-type" content="text/html; charset=utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+    
+    
+    
+
+        <meta property="og:title" content="Derivation of view and common projection matrices" />
+    <meta property="og:description" content="" />
+    <meta property="og:type" content="website" />
+    <meta property="og:locale" content="en" />
+    <meta property="og:url" content="http://akoylasar.github.io/posts/view-projection-graphics/" />
+    
+
+    <link rel="shortcut icon" href="/favicon.ico">
+
+    <link href="http://akoylasar.github.io/webfonts/ptserif/main.css" rel='stylesheet' type='text/css'>
+    <link href="http://akoylasar.github.io/webfonts/source-code-pro/main.css" rel="stylesheet" type="text/css">
+
+    <link rel="stylesheet" href="http://akoylasar.github.io/css/style.css">
+    
+
+    <meta name="generator" content="Hugo 0.73.0" />
+</head>
+
+
+<body>
+<div id="container">
+    <header id="header">
+    <div id="header-outer" class="outer">
+        <div id="header-inner" class="inner">
+            <a id="main-nav-toggle" class="nav-icon" href="javascript:;"></a>
+            <a id="logo" class="logo-text" href="http://akoylasar.github.io/">Whatever Flavour It Happens To Be</a>
+            <nav id="main-nav">
+                
+            </nav>
+            <nav id="sub-nav">
+                <div id="search-form-wrap">
+                </div>
+            </nav>
+        </div>
+    </div>
+</header>
+
+    <section id="main" class="outer">
+        <article class="article article-type-post" itemscope itemprop="blogPost">
+    <div class="article-inner">
+        
+        <header class="article-header">
+            <h1 class="article-title" itemprop="name">Derivation of view and common projection matrices</h1>
+        </header>
+        
+        <div class="article-meta">
+            <a href="/posts/view-projection-graphics/" class="article-date">
+                <time datetime='2020-07-16T19:21:24.000&#43;02:00' itemprop="datePublished">2020-07-16</time>
+            </a>
+            
+            
+            
+        </div>
+        <div class="article-entry" itemprop="articleBody">
+            <h2 id="introduction">Introduction</h2>
+
+<p>In this article I am going to derive some of the most commonly used transformations in nealy all graphics applications.<br>
+My goal is to explain this as simply as I can without mathematical loss.
+Of course the proofs won't follow the standard mathematical rigour which I think in our case should be perfectly OK.
+Also in order to keep the article short I would make this assumption that the readers are more or less familiar
+with matrices and linear transformations. As the article unfolds however I try to quickly gloss through some materials.<br>
+There are many great explanations out there of which <a href="https://youtu.be/fNk_zzaMoSs">3Blue1Brown</a> is my favourite.</p>
+
+<h2 id="first-things-first">First things first</h2>
+
+<p>Before we start it's important that we agree on the handedness of the coordinate system used to derive our final transformation matrices.
+I am going to use a right-handed system in this case. Here is what I mean:</p>
+
+<ul>
+<li>The \(\vec{x}\) axis points from bottom of your right hand wrist to the tip of your finger.</li>
+<li>The \(\vec{y}\) axis is formed when you close your hands and pointing outwards your palm prependecular to the \(x\) axis.</li>
+<li>The \(\vec{z}\) axis is the direction your thumb is pointing to.<br></li>
+</ul>
+
+<p>This is just an arbitrary choice of course and you may as well choose a left-handed system to arrive at the same results.
+What's important here however is to remain consistent. When the need arises it's easy to switch between one or the other (more on that later).<br>
+Let's start!</p>
+
+<h2 id="view-matrix">View matrix</h2>
+
+<p>Often times in 3D graphics applications you need to specify a viewing point or a camera.<br>
+The view matrix basically allows us to transform a given point from world-space into camera-space or eye-space.<br>
+You can think of these transformations as changes in perspective really.
+What I mean is that each observer can describe a given point differently.</p>
+
+<p>Concretely suppose you have a scene that contains an apple and a camera.
+The apple is located at the point \(P(0, 0, 2)\) while the camera is at \(C(0, 0, 5)\).<br>
+Now if we agree that the direction which our camera is looking at the apple is the positive \(\vec{z}\) axis for the the camera
+I think you can convince yourself easily that from the point of the view of the camera the apple is located at \(P(0, 0, 3)\).<br>
+So what we are interested in then, is under this change of coordinate (aka transformation) where each point ends up.
+This can be summed up as follows:</p>
+
+<p><span  class="math">\[
+P_x' = P_x
+\]</span></p>
+
+<p><span  class="math">\[
+P_y' = P_y
+\]</span></p>
+
+<p><span  class="math">\[
+P_z' = C_z - P_z
+\]</span></p>
+
+<p>Now these equations can be described using a 4x4 transformation matrix like so:</p>
+
+<p><span  class="math">\[
+\begin{pmatrix}
+P_x' \\
+P_y' \\
+P_z' \\
+1 
+\end{pmatrix}
+ =
+\begin{pmatrix} 
+1 & 0 & 0 & 0 \\
+0 & 1 & 0 & 0 \\
+0 & 0 & -1 & C_z = 5 \\
+0 & 0 & 0 & 1
+\end{pmatrix}
+.
+\begin{pmatrix}
+P_x \\
+P_y \\
+P_z \\
+1 
+\end{pmatrix}
+\]</span></p>
+
+<p>OK enough with introduction. Now let's really talk about the view matrix. What we need here is an <strong>orthonormal basis</strong>.<br>
+What's that? You might ask. Well, very informally you could imagine three vectors in the three dimensional space that:</p>
+
+<ol>
+<li>are all mutually prependecular to each other and</li>
+<li>each have a unit length.<br></li>
+</ol>
+
+<p>We carefully construct three such vectors and put them in a matrix that will represent the coordinate system of our camera.
+OK so to do that suppose that our camera is located at the point \(C(C_x, C_y, C_z)\) and that it is looking at the point
+\(L(L_x, L_y, L_z)\). First vector we build is as follows (note that we need to normalize this vector as well):</p>
+
+<p><span  class="math">\[\vec{w} = (L - C) / ||L - C||\]</span></p>
+
+<p>Now we additionally need to pick another vector that is <strong>not colinear</strong> with this vector. In other words the angle between them
+should be neither \(0\degree\) nor \(180\degree\) in other words they won't lie on the same line! Lets call this vector \(\vec{up}\). Typically
+in graphics applications this could be something like \(\vec{up}(0, 1, 0)\). So with this given we can use a
+<a href="https://en.wikipedia.org/wiki/Cross_product">cross product</a> to create our second vector as follows:</p>
+
+<p><span  class="math">\[\vec{u} = (\vec{up} \times \vec{w}) / ||\vec{up} \times \vec{w}||\]</span></p>
+
+<p>Note that the magnitude of this vector <a href="https://en.wikipedia.org/wiki/Cross_product#Geometric_meaning">might not necessarily be 1</a>
+therefore we need to normalize it to turn it into a unit vector. Last but not least our final vector:</p>
+
+<p><span  class="math">\[\vec{v} = \vec{w} \times \vec{u}\]</span></p>
+
+<p>Now we have all the vectors that we needed to build our transformation matrix. Note that \(\vec{v}\) is guaranteed to have a unit length (I leave this as an exercise!). Another thing to pay attention to is that the triplet of unit vectors \((\vec{u}, \vec{v}, \vec{w})\) make
+up a right-handed coordinate system and you can convince yourself by following the same instructions explained before.<br>
+Using these vectors we can now transform any point from world-space to camera-space. <strong>Assuming that the camera is located at the origin</strong> this can be achieved with dot products:</p>
+
+<p><span  class="math">\[
+P_{camera_x} = P_{world} \cdot \vec{u}
+\]</span></p>
+
+<p><span  class="math">\[
+P_{camera_y} = P_{world} \cdot \vec{v}  
+\]</span></p>
+
+<p><span  class="math">\[
+P_{camera_z} = P_{world} \cdot \vec{w}  
+\]</span></p>
+
+<p>Note that each the dot product of \(P_{world}\) with any axis effectively gives us the projection of \(P_{world}\) along that axis which
+is basically our new coordinates.</p>
+
+<p>One tiny bit is left before we wrap it up. Remember that the camera is at the point \(C(C_x, C_y, C_z)\) so this should be counted for
+in the transformation matrix. In other words if you transform a point that happens to be in the same location as our camera from world-space
+to camera-space, the resulting point should be at exactly \(O(0, 0, 0)\).<br>
+With that in mind the final transformation would look like:</p>
+
+<p><span  class="math">\[
+P_{camera_x} = P_{world} \cdot \vec{u} - C \cdot \vec{u}
+\]</span></p>
+
+<p><span  class="math">\[
+P_{camera_y} = P_{world} \cdot \vec{v} - C \cdot \vec{v}
+\]</span></p>
+
+<p><span  class="math">\[
+P_{camera_z} = P_{world} \cdot \vec{w} - C \cdot \vec{w}
+\]</span></p>
+
+<p>Using matrix notation:</p>
+
+<p><span  class="math">\[
+\begin{pmatrix}
+P_{camera_x} \\
+P_{camera_y} \\
+P_{camera_z} \\
+1 
+\end{pmatrix}
+ =
+\begin{pmatrix} 
+\vec{u_x} & \vec{u_y} & \vec{u_z} &  -C \cdot \vec{u}\\
+\vec{v_x} & \vec{v_y} & \vec{v_z} &  -C \cdot \vec{v}\\
+\vec{w_x} & \vec{w_y} & \vec{w_z} &  -C \cdot \vec{w}\\
+0 & 0 & 0 & 1
+\end{pmatrix}
+.
+\begin{pmatrix}
+P_{world_x} \\
+P_{world_y} \\
+P_{world_z} \\
+1 
+\end{pmatrix}
+\]</span></p>
+
+<p>And we're done! Note that this matrix is also known as <strong>&quot;look at&quot;</strong> matrix.</p>
+
+        </div>
+
+        
+        
+        
+
+        
+
+
+        
+    </div>
+    
+<nav id="article-nav">
+    
+    
+</nav>
+
+
+</article>
+
+        
+    </section>
+    <footer id="footer">
+    <div class="outer">
+        <div id="footer-info" class="inner">
+            &copy; 2020 Whatever Flavour It Happens To Be
+            <br />
+            Powered by <a href="https://gohugo.io" target="_blank">Hugo</a> with theme <a href="https://github.com/carsonip/hugo-theme-minos" target="_blank">Minos</a>
+        </div>
+    </div>
+    
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.9.0/styles/tomorrow-night.min.css" integrity="sha256-2wL88NKUqvJi/ExflDzkzUumjUM73mcK2gBvBBeLvTk=" crossorigin="anonymous" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.9.0/highlight.min.js" integrity="sha256-KbfTjB0WZ8vvXngdpJGY3Yp3xKk+tttbqClO11anCIU=" crossorigin="anonymous"></script>
+    <script>hljs.initHighlightingOnLoad();</script>
+
+    
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.7.1/katex.min.css" integrity="sha384-wITovz90syo1dJWVh32uuETPVEtGigN07tkttEqPv+uR2SE/mbQcG7ATL28aI9H0" crossorigin="anonymous">
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.7.1/katex.min.js" integrity="sha384-/y1Nn9+QQAipbNQWU65krzJralCnuOasHncUFXGkdwntGeSvQicrYkiUBwsgUqc1" crossorigin="anonymous"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.7.1/contrib/auto-render.min.js" integrity="sha256-ExtbCSBuYA7kq1Pz362ibde9nnsHYPt6JxuxYeZbU+c=" crossorigin="anonymous"></script>
+        <script>renderMathInElement(document.body);</script>
+    
+    <script>
+        document.getElementById('main-nav-toggle').addEventListener('click', function () {
+            var header = document.getElementById('header');
+            if (header.classList.contains('mobile-on')) {
+                header.classList.remove('mobile-on');
+            } else {
+                header.classList.add('mobile-on');
+            }
+        });
+    </script>
+</footer>
+
+</div>
+</body>
+</html>
