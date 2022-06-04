@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>A trip down the transformation pipeline in Mapbox GL-JS // Whatever Flavour It Happens To Be</title>
+
+    <meta charset="utf-8">
+    <meta http-equiv="content-type" content="text/html; charset=utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+    
+    
+    
+
+        <meta property="og:title" content="A trip down the transformation pipeline in Mapbox GL-JS" />
+    <meta property="og:description" content="" />
+    <meta property="og:type" content="website" />
+    <meta property="og:locale" content="en" />
+    <meta property="og:url" content="https://akoylasar.github.io/posts/transformation-stack/" />
+    
+
+    <link rel="shortcut icon" href="/favicon.ico">
+
+    <link href="https://akoylasar.github.io/webfonts/ptserif/main.css" rel='stylesheet' type='text/css'>
+    <link href="https://akoylasar.github.io/webfonts/source-code-pro/main.css" rel="stylesheet" type="text/css">
+
+    <link rel="stylesheet" href="https://akoylasar.github.io/css/style.css">
+    
+
+    <meta name="generator" content="Hugo 0.100.1" />
+</head>
+
+
+<body>
+<div id="container">
+    <header id="header">
+    <div id="header-outer" class="outer">
+        <div id="header-inner" class="inner">
+            <a id="main-nav-toggle" class="nav-icon" href="javascript:;"></a>
+            <a id="logo" class="logo-text" href="https://akoylasar.github.io/">Whatever Flavour It Happens To Be</a>
+            <nav id="main-nav">
+                
+            </nav>
+            <nav id="sub-nav">
+                <div id="search-form-wrap">
+                </div>
+            </nav>
+        </div>
+    </div>
+</header>
+
+    <section id="main" class="outer">
+        <article class="article article-type-post" itemscope itemprop="blogPost">
+    <div class="article-inner">
+        
+        <header class="article-header">
+            <h1 class="article-title" itemprop="name">A trip down the transformation pipeline in Mapbox GL-JS</h1>
+        </header>
+        
+        <div class="article-meta">
+            <a href="/posts/transformation-stack/" class="article-date">
+                <time datetime='2022-06-03T13:44:51.000&#43;02:00' itemprop="datePublished">2022-06-03</time>
+            </a>
+            
+            
+            
+            <div class="article-comment-link-wrap">
+                <a href="/posts/transformation-stack/#disqus_thread" class="article-comment-link">Comments</a>
+            </div>
+            
+        </div>
+        <div class="article-entry" itemprop="articleBody">
+            <p>In this article I will briefly explain how GL-JS renders an encoded point from a <a href="https://en.wikipedia.org/wiki/Vector_tiles">vector tile</a> onto the screen.</p>
+<h2 id="few-notes">Few notes</h2>
+<p>I assume you already know what vector tiles are so here are few things to know about Mapbox vector tiles:</p>
+<ul>
+<li>They are agnostic of geographics information.</li>
+<li>Mapbox vector tiles have a resolution of 512 pixels.</li>
+<li>They are efficiently encoded (using <a href="https://developers.google.com/protocol-buffers/docs/overview">google protobufs</a>) for fast transfer over web.<br>
+Let&rsquo;s go!</li>
+</ul>
+<h2 id="how-to-encode-a-point-in-a-tile">How to encode a point in a tile</h2>
+<p>OK so naturally the first question is, how to encode a geographics location in a tile. Here is how I like to think about it:</p>
+<p>We start with a point in <em>WGS84 coordinates</em> (latitude, longitude in <code>degrees</code>).<br>
+Next we covert this point to <a href="https://en.wikipedia.org/wiki/Web_Mercator_projection">Web Mercator</a> coordinates:</p>
+<ol>
+<li>
+<p>An intermediate step is to calculate \(x'\) and \(y'\) which are unitless and are in \([0, 1]\) range <sup id="fnref:1"><a href="#fn:1" class="footnote-ref" role="doc-noteref">1</a></sup>):<br>
+$$
+x' = {lon + \pi \over 2\pi}
+$$
+$$
+y' = {\pi - \ln[\tan({\pi \over 4} + {lat \over 2})] \over 2\pi}
+$$</p>
+</li>
+<li>
+<p>Next we decide how big our world is going to be. This is a world in pixel units and its size depends on tile size (in pixels)
+and number of tiles (which in turn depends on zoom level), in short:
+$$
+worldSize = tileSize * 2 ^ {zoom}
+$$
+Note that this represents the number of pixels in each dimension.</p>
+</li>
+<li>
+<p>We now are ready to compute the <em>pixel coorinates</em> that tells us which pixel the original point ends up on<sup id="fnref:2"><a href="#fn:2" class="footnote-ref" role="doc-noteref">2</a></sup>:
+$$
+px = \lfloor x' * worldSize \rfloor
+$$
+$$
+py = \lfloor y' * worldSize \rfloor
+$$</p>
+</li>
+<li>
+<p>Then we compute <em>Tile coordinates</em> that tells us which tile this pixel belongs to:
+$$
+x = \lfloor {px \over tileSize} \rfloor
+$$
+$$
+y = \lfloor {py \over tileSize} \rfloor
+$$
+$$
+z = zoom
+$$
+Combined together this gives us the <em>id</em> of the tile reprsented as <code>z/x/y</code>.</p>
+</li>
+<li>
+<p>Last piece tells us about the coordinates of the pixel inside the tile (i.e. <em>in-Tile coorinates</em>):<br>
+$$
+ix = fract({px \over tileSize}) * tileExtent
+$$
+$$
+iy = fract({py \over tileSize}) * tileExtent
+$$
+where \(tileExtent\) is basically the &ldquo;resolution&rdquo; used to encode the <em>in-Tile coordinates</em>. for instance 4096, or 8192.</p>
+</li>
+</ol>
+<p>We have all the information we need so we can encode this pixel using <a href="https://github.com/mapbox/vector-tile-spec">Mapbox tile specifications</a> and save the tile under the name <code>z/x/y.mvt</code>!
+Now let&rsquo;s see how this gets rendered in <code>gl-js</code>!</p>
+<h2 id="how-to-transform-a-point-in-a-tile">How to transform a point in a tile</h2>
+<p>So now that we have our tiles and know what they contain we can transform them so we can display them on thes screen!<br>
+Recall the <em>in-Tile coordinates</em> and how it depends on the tile extent. In order to simplify things Mapbox <a href="https://github.com/mapbox/mapbox-gl-js/blob/main/src/data/load_geometry.js#L21-L32">normalizes</a> the <em>in-Tile coordinates</em> so that they end up in \([0, 8192]\) range. This gives us what I&rsquo;d refer to as <em>Normalized in-Tile coordinates</em> range i.e.:
+$$
+nx = ix * {8192 \over tileExtent}
+$$
+$$
+ny = iy * {8192 \over tileExtent}
+$$</p>
+<p>That&rsquo;s all we need to do to prepare our tile geometry for rendering (i.e. vertex buffers)<sup id="fnref:3"><a href="#fn:3" class="footnote-ref" role="doc-noteref">3</a></sup>.</p>
+<p>Next we&rsquo;ll setup our transformation matrices that basically take us from <em>normalized in-Tile coordinates</em> to <em>screen coordinates</em>!<br>
+What&rsquo;s important and should not be missed is units and the input/output of each transformation matrix. I will describe these next.</p>
+<h3 id="enter-tile-matrix">Enter tile matrix</h3>
+<p>The first matrix is the <em>tile matrix</em> which takes us from <em>normalized in-Tile coordinates</em> to <em>pixel/world coordinates</em>.<br>
+Now this is basically the same coordinate I described in part 3 of previous section. One thing to note is that we only talked about integer zooms but actually we need to be able to support real values too. Imagine that we&rsquo;re at zoom level 1.5 but there are no tiles at that zoom level so what we do is we fetch tiles say at zoom level 1 and then kind of compensate for this by scaling it up. Here is everything <em>tile matrix</em> does:</p>
+<ol>
+<li>Divides the input by \(EXTENT = 8192\) to bring all the coordinates to \([0, 1]\) range.</li>
+<li>Scales up the result:
+$$
+scale = tileSize * {2 ^ {zoom} \over 2 ^ {\lfloor zoom\rfloor}}
+$$
+If \(tileSize = 512\) and \(zoom = 11.1\) this would roughly be \(scale = 548.74\).<br>
+Multiplying by this value effectively associates a tile with \(548.74\) pixel units.<br>
+One other way to interpret this is that each pixel unit would occupy \(S \times S\) units where \(S\) is in \([1, 2)\) range<sup id="fnref:4"><a href="#fn:4" class="footnote-ref" role="doc-noteref">4</a></sup>.</li>
+<li>Tranlates the result from previous step by:<br>
+$$
+trx = id_x * scale
+$$
+$$
+try = id_y * scale
+$$
+Where \(id\) is the tile ID to which our original point belongs.</li>
+</ol>
+<p>Putting it all together gives us the following matrix:</p>
+<p>$$
+\begin{pmatrix}
+scale / EXTENT &amp; 0              &amp; -trx \\
+0              &amp; scale / EXTENT &amp; -try \\
+0              &amp; 0              &amp; 1
+\end{pmatrix}
+$$</p>
+<p>Note that the actual implementation uses a \(4\times 4\) matrix<sup id="fnref:5"><a href="#fn:5" class="footnote-ref" role="doc-noteref">5</a></sup>.</p>
+<h3 id="where-is-my-camera">Where is my camera?</h3>
+<p>Next we need to specify where the camera (viewpoint) is.<br>
+The camera position is defined in <em>pixel/world coordinates</em> and is determined by three factors:</p>
+<ol>
+<li>\(center\) aka <em>map center</em> defined in <em>pixel/world coordinates</em> is where the camera is looking at.</li>
+<li>The camera&rsquo;s forward vector which is determined by its orientation<sup id="fnref:6"><a href="#fn:6" class="footnote-ref" role="doc-noteref">6</a></sup> and is defined as follows:
+$$
+forward = M * Z_p
+$$
+where \(M\) is the orientation matrix and \(Z_p = (0, 0 ,1)\).</li>
+<li>\(fd\) denoting the distance between <em>map center</em> and camera position<sup id="fnref:7"><a href="#fn:7" class="footnote-ref" role="doc-noteref">7</a></sup>.</li>
+</ol>
+<p>In short:
+$$
+cameraPosition = center - fd * forward
+$$</p>
+<p>Which is a point in <em>pixel/world coordinates</em><sup id="fnref:8"><a href="#fn:8" class="footnote-ref" role="doc-noteref">8</a></sup>.</p>
+<h3 id="world-to-camera-coordinates">World to camera coordinates</h3>
+<p>Before we proceed I would like mention that our <em>pixel/world</em> space is defined in a left-handed coordinate system<sup id="fnref:9"><a href="#fn:9" class="footnote-ref" role="doc-noteref">9</a></sup>.<br>
+\(+X\) is from left of the screen to right, \(+Y\) is from top of the screen to bottom and \(+Z\) is prependecular to the screen and pointing outwards.<br>
+The camera however has a right-handed coordinate space where \(+Y\) is actually flipped and is pointing upwards<sup id="fnref:10"><a href="#fn:10" class="footnote-ref" role="doc-noteref">10</a></sup>.<br>
+Now that we know the orientation and the location of the camera in <em>pixel/world coordinates</em> we can construct a matrix that takes us from <em>pixel/world
+coordinates</em> to <em>camera coordinates</em><sup id="fnref1:10"><a href="#fn:10" class="footnote-ref" role="doc-noteref">10</a></sup>:</p>
+<ol>
+<li>The \(z\) coordinate of the <em>pixel/world coordinates</em> is actually in meters<sup id="fnref:11"><a href="#fn:11" class="footnote-ref" role="doc-noteref">11</a></sup>. We would like it to be
+in pixel units so we multiply it by a scale factor that specifies the number of pixels per meter.</li>
+<li>Multiply by the camera&rsquo;s location and rotation matrices mentioned earlier.</li>
+<li>Finally we flip the \(y\) axis.</li>
+</ol>
+<p>In short:
+$$
+p_{camera} =
+\begin{pmatrix}
+1 &amp; 0  &amp; 0 &amp; 0 \\
+0 &amp; -1 &amp; 0 &amp; 0 \\
+0 &amp; 0  &amp; 1 &amp; 0 \\
+0 &amp; 0  &amp; 0 &amp; 1
+\end{pmatrix}
+*
+\begin{pmatrix}
+1 &amp; 0 &amp; 0 &amp; -c_x \\
+0 &amp; 1 &amp; 0 &amp; -c_y \\
+0 &amp; 0 &amp; 1 &amp; -c_z \\
+0 &amp; 0 &amp; 0 &amp; 1
+\end{pmatrix}
+*
+R_{camera}
+*
+\begin{pmatrix}
+1 &amp; 0 &amp; 0              &amp; 0 \\
+0 &amp; 1 &amp; 0              &amp; 0 \\
+0 &amp; 0 &amp; ppm &amp; 0 \\
+0 &amp; 0 &amp; 0              &amp; 1
+\end{pmatrix}
+*
+p_{world}
+$$
+where \(ppm\) denotes pixels per meter, \(R_{camera}\) denotes the orientation matrix of the camera and \((c_x, c_y, c_z)\) is the location of the camera in <em>pixel/world coordinates</em> discussed earlier.</p>
+<h3 id="camera-to-clip-coordinates">Camera to clip coordinates</h3>
+<p>Finally we construct a perspective matrix which takes us from <em>camera coordinates</em> to <em>clip coordinates</em>! What we need here is the field of view, the viewport&rsquo;s aspect ratio and near and far plane distances.<br>
+Far plane distance calculation in particular is quite important here because we would like to ensure that everything on the map which needs to be displayed doesn&rsquo;t get culled out and remains within the camera frustum bounds especially when camera has a high pitch.</p>
+<h3 id="sum-it-up">Sum it up</h3>
+<p>So here is a summary of what&rsquo;s happening:</p>
+<p>$$
+p_{pixel/world} = M_{tile} * p_{normalized-in-tile}
+$$
+$$
+p_{camera} = M_{camera} * p_{pixel/world}
+$$
+$$
+p_{clip} = M_{perspective} * p_{camera}
+$$</p>
+<h2 id="next-up">Next up</h2>
+<p>In this article I didn&rsquo;t mention anything about terrain or how we render everything on a globe instead of a 2D mercator plane. I also didn&rsquo;t discuss how the far plane for the perspective camera gets calculated and how we deal with rotations.<br>
+But fear not these will be described in follow-up posts so stay tuned!
+That&rsquo;s all folks! Thank you!</p>
+<h2 id="footnotes">Footnotes</h2>
+<div class="footnotes" role="doc-endnotes">
+<hr>
+<ol>
+<li id="fn:1">
+<p>\(lon\) is in \([-\pi, \pi]\) and \(lat\) is in \([-\phi_{max}, \phi_{max}]\) where \(\phi_{max} = [2 \arctan(e^\pi) - {\pi \over 2}]\).<br>
+Plugging these values into \(lon\) and \(lat\) respectively ensures that \(x'\) and \(y'\) end up in the \([0, 1]\) range.&#160;<a href="#fnref:1" class="footnote-backref" role="doc-backlink">&#x21a9;&#xfe0e;</a></p>
+</li>
+<li id="fn:2">
+<p>Note that in this coordinate each tile corresponds to a \(tileSize \times tileSize\) &ldquo;pixel units&rdquo; and each pixel has a \(1\times1\) unit.
+But we can also think of it slightly differently in terms of what I would like to call <em>1x1 tile coordinates</em>:<br>
+$$
+wx = x' * numTiles
+$$
+$$
+wy = y' * numTiles
+$$
+where instead each tile corresponds to a \(1\times1\) unit.&#160;<a href="#fnref:2" class="footnote-backref" role="doc-backlink">&#x21a9;&#xfe0e;</a></p>
+</li>
+<li id="fn:3">
+<p>But what&rsquo;s that magic 8192? We would like to describe the <em>normalized in-Tile coordinates</em> with as much precision as possible.<br>
+We use 16-bit integers for our vertex buffers but we also use some bits for other purposes which at the end of the day leaves
+us with 13 bits and you guessed it \(8192 = 2 ^ {13}\). Also see <a href="https://github.com/mapbox/mapbox-gl-js/blob/main/src/data/extent.js">this</a>&#160;<a href="#fnref:3" class="footnote-backref" role="doc-backlink">&#x21a9;&#xfe0e;</a></p>
+</li>
+<li id="fn:4">
+<p>$$
+\lim\limits_{(zoom - \lfloor zoom \rfloor) \to 1}\frac{2 ^ {zoom}}{2 ^ {\lfloor zoom\rfloor}} = 2
+$$&#160;<a href="#fnref:4" class="footnote-backref" role="doc-backlink">&#x21a9;&#xfe0e;</a></p>
+</li>
+<li id="fn:5">
+<p>You can take a look at the implementation of this matrix <a href="https://github.com/mapbox/mapbox-gl-js/blob/main/src/geo/projection/projection.js">here</a>.&#160;<a href="#fnref:5" class="footnote-backref" role="doc-backlink">&#x21a9;&#xfe0e;</a></p>
+</li>
+<li id="fn:6">
+<p>Using pitch and bearing which for now we assume as given.&#160;<a href="#fnref:6" class="footnote-backref" role="doc-backlink">&#x21a9;&#xfe0e;</a></p>
+</li>
+<li id="fn:7">
+<p>This is basically the so called <em>focal distance</em> of the camera which depends only on field of view and viewport resolution. The unit here is <em>screen pixels / pixels</em>.&#160;<a href="#fnref:7" class="footnote-backref" role="doc-backlink">&#x21a9;&#xfe0e;</a></p>
+</li>
+<li id="fn:8">
+<p>Another way to think about this is to just <em>normalize</em> everything to be in the mercator plane(i.e. divide everything by \(worldSize\)). Just imagine an XY-plane where the origin \((0, 0)\) is at the top-left corner and the furthest point \((1, 1)\) is at bottom-right. The camera is then located somewhere above this plane (depending on its orientation) and with an exact distance of \(cameraFocalDistance / worldSize\) from <em>map center</em>.&#160;<a href="#fnref:8" class="footnote-backref" role="doc-backlink">&#x21a9;&#xfe0e;</a></p>
+</li>
+<li id="fn:9">
+<p>You may recall that \((0, 0)\) is located at top-left corner and \((worldSize, worldSize)\) is at bottom-right corner of our world plane.&#160;<a href="#fnref:9" class="footnote-backref" role="doc-backlink">&#x21a9;&#xfe0e;</a></p>
+</li>
+<li id="fn:10">
+<p>You can see the implementation spread across few places <code>transform._updateCameraState</code>, <code>transform._calcMatrices</code> and <code>FreeCamera.getWorldToCamera</code>.&#160;<a href="#fnref:10" class="footnote-backref" role="doc-backlink">&#x21a9;&#xfe0e;</a>&#160;<a href="#fnref1:10" class="footnote-backref" role="doc-backlink">&#x21a9;&#xfe0e;</a></p>
+</li>
+<li id="fn:11">
+<p>When using globe projection we use <em>pixl</em> units but that&rsquo;s for another post.&#160;<a href="#fnref:11" class="footnote-backref" role="doc-backlink">&#x21a9;&#xfe0e;</a></p>
+</li>
+</ol>
+</div>
+
+        </div>
+
+        
+        
+        <div class="article-toc" >
+            <h3>Contents</h3>
+            <nav id="TableOfContents">
+  <ul>
+    <li><a href="#few-notes">Few notes</a></li>
+    <li><a href="#how-to-encode-a-point-in-a-tile">How to encode a point in a tile</a></li>
+    <li><a href="#how-to-transform-a-point-in-a-tile">How to transform a point in a tile</a>
+      <ul>
+        <li><a href="#enter-tile-matrix">Enter tile matrix</a></li>
+        <li><a href="#where-is-my-camera">Where is my camera?</a></li>
+        <li><a href="#world-to-camera-coordinates">World to camera coordinates</a></li>
+        <li><a href="#camera-to-clip-coordinates">Camera to clip coordinates</a></li>
+        <li><a href="#sum-it-up">Sum it up</a></li>
+      </ul>
+    </li>
+    <li><a href="#next-up">Next up</a></li>
+    <li><a href="#footnotes">Footnotes</a></li>
+  </ul>
+</nav>
+        </div>
+        
+        
+
+        
+
+
+        
+    </div>
+    
+<nav id="article-nav">
+    
+    
+</nav>
+
+
+</article>
+
+        
+            <div id="disqus_thread"></div>
+<script type="application/javascript">
+    window.disqus_config = function () {
+    
+    
+    
+    };
+    (function() {
+        if (["localhost", "127.0.0.1"].indexOf(window.location.hostname) != -1) {
+            document.getElementById('disqus_thread').innerHTML = 'Disqus comments not available by default when the website is previewed locally.';
+            return;
+        }
+        var d = document, s = d.createElement('script'); s.async = true;
+        s.src = '//' + "https-akoylasar-github-io" + '.disqus.com/embed.js';
+        s.setAttribute('data-timestamp', +new Date());
+        (d.head || d.body).appendChild(s);
+    })();
+</script>
+<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+<a href="https://disqus.com" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
+        
+    </section>
+    <footer id="footer">
+    <div class="outer">
+        <div id="footer-info" class="inner">
+            &copy; 2022 Whatever Flavour It Happens To Be
+            <br />
+            Powered by <a href="https://gohugo.io" target="_blank">Hugo</a> with theme <a href="https://github.com/carsonip/hugo-theme-minos" target="_blank">Minos</a>
+        </div>
+    </div>
+    
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.9.0/styles/tomorrow-night.min.css" integrity="sha256-2wL88NKUqvJi/ExflDzkzUumjUM73mcK2gBvBBeLvTk=" crossorigin="anonymous" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.9.0/highlight.min.js" integrity="sha256-KbfTjB0WZ8vvXngdpJGY3Yp3xKk+tttbqClO11anCIU=" crossorigin="anonymous"></script>
+    <script>hljs.initHighlightingOnLoad();</script>
+
+    
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.7.1/katex.min.css" integrity="sha384-wITovz90syo1dJWVh32uuETPVEtGigN07tkttEqPv+uR2SE/mbQcG7ATL28aI9H0" crossorigin="anonymous">
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.7.1/katex.min.js" integrity="sha384-/y1Nn9+QQAipbNQWU65krzJralCnuOasHncUFXGkdwntGeSvQicrYkiUBwsgUqc1" crossorigin="anonymous"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.7.1/contrib/auto-render.min.js" integrity="sha256-ExtbCSBuYA7kq1Pz362ibde9nnsHYPt6JxuxYeZbU+c=" crossorigin="anonymous"></script>
+        <script>renderMathInElement(document.body);</script>
+    
+    <script>
+        document.getElementById('main-nav-toggle').addEventListener('click', function () {
+            var header = document.getElementById('header');
+            if (header.classList.contains('mobile-on')) {
+                header.classList.remove('mobile-on');
+            } else {
+                header.classList.add('mobile-on');
+            }
+        });
+    </script>
+</footer>
+
+</div>
+</body>
+</html>

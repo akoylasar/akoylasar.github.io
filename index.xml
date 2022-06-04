@@ -5,6 +5,19 @@
     <link>https://akoylasar.github.io/</link>
     <description>Recent content on Whatever Flavour It Happens To Be</description>
     <generator>Hugo -- gohugo.io</generator>
-    <language>en-us</language><atom:link href="https://akoylasar.github.io/index.xml" rel="self" type="application/rss+xml" />
+    <language>en-us</language>
+    <lastBuildDate>Fri, 03 Jun 2022 13:44:51 +0200</lastBuildDate><atom:link href="https://akoylasar.github.io/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>A trip down the transformation pipeline in Mapbox GL-JS</title>
+      <link>https://akoylasar.github.io/posts/transformation-stack/</link>
+      <pubDate>Fri, 03 Jun 2022 13:44:51 +0200</pubDate>
+      
+      <guid>https://akoylasar.github.io/posts/transformation-stack/</guid>
+      <description>In this article I will briefly explain how GL-JS renders an encoded point from a vector tile onto the screen.
+Few notes I assume you already know what vector tiles are so here are few things to know about Mapbox vector tiles:
+They are agnostic of geographics information. Mapbox vector tiles have a resolution of 512 pixels. They are efficiently encoded (using google protobufs) for fast transfer over web.
+Let&amp;rsquo;s go!</description>
+    </item>
+    
   </channel>
 </rss>
