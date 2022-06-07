@@ -215,14 +215,14 @@ p_{camera} =
 0 &amp; 0  &amp; 0 &amp; 1
 \end{pmatrix}
 *
+R_{camera}^{-1}
+*
 \begin{pmatrix}
 1 &amp; 0 &amp; 0 &amp; -c_x \\
 0 &amp; 1 &amp; 0 &amp; -c_y \\
 0 &amp; 0 &amp; 1 &amp; -c_z \\
 0 &amp; 0 &amp; 0 &amp; 1
 \end{pmatrix}
-*
-R_{camera}
 *
 \begin{pmatrix}
 1 &amp; 0 &amp; 0              &amp; 0 \\
@@ -233,7 +233,7 @@ R_{camera}
 *
 p_{world}
 $$
-where \(ppm\) denotes pixels per meter, \(R_{camera}\) denotes the orientation matrix of the camera and \((c_x, c_y, c_z)\) is the location of the camera in <em>pixel/world coordinates</em> discussed earlier.</p>
+where \(ppm\) denotes pixels per meter, \(R_{camera}^{-1}\) denotes the inverse of the camera rotation and \((c_x, c_y, c_z)\) is the location of the camera in <em>pixel/world coordinates</em> discussed earlier.</p>
 <h3 id="camera-to-clip-coordinates">Camera to clip coordinates</h3>
 <p>Finally we construct a perspective matrix which takes us from <em>camera coordinates</em> to <em>clip coordinates</em>! What we need here is the field of view, the viewport&rsquo;s aspect ratio and near and far plane distances.<br>
 Far plane distance calculation in particular is quite important here because we would like to ensure that everything on the map which needs to be displayed doesn&rsquo;t get culled out and remains within the camera frustum bounds especially when camera has a high pitch.</p>
