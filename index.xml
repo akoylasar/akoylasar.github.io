@@ -13,9 +13,9 @@
       <pubDate>Mon, 06 Jun 2022 13:44:51 +0200</pubDate>
       
       <guid>https://akoylasar.github.io/posts/lightning-cos2-surface-integral/</guid>
-      <description>In his book 3 in the fantastic series Raytracing in a weekend Peter Shirley computes an integral numerically and leaves the analytical solution as an exercise.
+      <description>Background In his book 3 in the fantastic series Raytracing in a weekend Peter Shirley computes an integral numerically and leaves the analytical solution as an exercise.
 This analytical proof is presented below.
-Putting everything down formally, this is what we&amp;rsquo;re tryign to compute:
+Proof Putting everything down formally, this is what we&amp;rsquo;re tryign to compute:
 $$ \iint_{\Omega} f dS $$ The integrand is a function in spherical coordinates, that is \(f(r, \theta, \phi) = \cos^2(\theta) \). Domain of integration is denoted by \(\Omega\)</description>
     </item>
     
