@@ -16,7 +16,7 @@
       <description>Background In his book 3 in the fantastic series Raytracing in a weekend Peter Shirley computes an integral numerically and leaves the analytical solution as an exercise.
 This analytical proof is presented below.
 Proof Putting everything down formally, this is what we&amp;rsquo;re tryign to compute:
-$$ \iint_{\Omega} f dS $$ The integrand is a function in spherical coordinates, that is \(f(r, \theta, \phi) = \cos^2(\theta) \). Domain of integration is denoted by \(\Omega\)</description>
+$$ \iint_{\Omega} f dS $$ The integrand is a function in spherical coordinates, that is \(f(r, \theta, \phi) = \cos^2(\theta) \). Domain of integration is denoted by \(\Omega\) which is the surface of a unit sphere.</description>
     </item>
     
     <item>
