@@ -13,7 +13,7 @@
       <pubDate>Tue, 19 Jul 2022 12:00:58 +0200</pubDate>
       
       <guid>https://akoylasar.github.io/posts/far-z-calculation/</guid>
-      <description>Background Im my previous post I left out a few things when talking about tranformations. This post is a follow-up on how the camera far plane in Mapbox gl-js is calculated. Correctly computing the far plane distance ensures that everything is rendered/culled properly (in particular in tilted view).
+      <description>Background In my previous post I left out a few things when talking about tranformations. This post is a follow-up on how the camera far plane in Mapbox gl-js is calculated. Correctly computing the far plane distance ensures that everything is rendered/culled properly (in particular in tilted view).
 Let&amp;rsquo;s far plane The far plane is affected by the camera&amp;rsquo;s field of view, its pitch and its altitude, \(r\) (which we already covered in the previous post).</description>
     </item>
     

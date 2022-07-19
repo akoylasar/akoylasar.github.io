@@ -69,7 +69,7 @@
         </div>
         <div class="article-entry" itemprop="articleBody">
             <h2 id="background">Background</h2>
-<p>Im my <a href="/posts/transformation-stack">previous post</a> I left out a few things when talking about tranformations. This post is a follow-up on how the camera far plane in Mapbox <code>gl-js</code> is calculated.
+<p>In my <a href="/posts/transformation-stack">previous post</a> I left out a few things when talking about tranformations. This post is a follow-up on how the camera far plane in Mapbox <code>gl-js</code> is calculated.
 Correctly computing the far plane distance ensures that everything is rendered/culled properly (in particular in tilted view).</p>
 <h2 id="lets-far-plane">Let&rsquo;s far plane</h2>
 <p>The far plane is affected by the camera&rsquo;s field of view, its pitch and its altitude, \(r\) (which we already covered in the previous post).</p>
