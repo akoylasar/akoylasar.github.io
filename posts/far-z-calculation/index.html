@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>An analytical solution to the integral of cos^2(theta) over a spherical surface // Whatever Flavour It Happens To Be</title>
+    <title>Calculating far plane distance in Mapbox gl-js // Whatever Flavour It Happens To Be</title>
 
     <meta charset="utf-8">
     <meta http-equiv="content-type" content="text/html; charset=utf-8">
@@ -10,11 +10,11 @@
     
     
 
-        <meta property="og:title" content="An analytical solution to the integral of cos^2(theta) over a spherical surface" />
+        <meta property="og:title" content="Calculating far plane distance in Mapbox gl-js" />
     <meta property="og:description" content="" />
     <meta property="og:type" content="website" />
     <meta property="og:locale" content="en" />
-    <meta property="og:url" content="https://akoylasar.github.io/posts/lightning-cos2-surface-integral/" />
+    <meta property="og:url" content="https://akoylasar.github.io/posts/far-z-calculation/" />
     
 
     <link rel="shortcut icon" href="/favicon.ico">
@@ -52,53 +52,46 @@
     <div class="article-inner">
         
         <header class="article-header">
-            <h1 class="article-title" itemprop="name">An analytical solution to the integral of cos^2(theta) over a spherical surface</h1>
+            <h1 class="article-title" itemprop="name">Calculating far plane distance in Mapbox gl-js</h1>
         </header>
         
         <div class="article-meta">
-            <a href="/posts/lightning-cos2-surface-integral/" class="article-date">
-                <time datetime='2022-06-06T13:44:51.000&#43;02:00' itemprop="datePublished">2022-06-06</time>
+            <a href="/posts/far-z-calculation/" class="article-date">
+                <time datetime='2022-07-19T12:00:58.000&#43;02:00' itemprop="datePublished">2022-07-19</time>
             </a>
             
             
             
             <div class="article-comment-link-wrap">
-                <a href="/posts/lightning-cos2-surface-integral/#disqus_thread" class="article-comment-link">Comments</a>
+                <a href="/posts/far-z-calculation/#disqus_thread" class="article-comment-link">Comments</a>
             </div>
             
         </div>
         <div class="article-entry" itemprop="articleBody">
-            <h3 id="background">Background</h3>
-<p>In his book 3 in the fantastic series <a href="https://raytracing.github.io/">Raytracing in a weekend</a> Peter Shirley computes an integral numerically and leaves the analytical solution as <a href="https://raytracing.github.io/books/RayTracingTheRestOfYourLife.html#mcintegrationonthesphereofdirections">an exercise</a>.<br>
-This analytical proof is presented below.</p>
-<h3 id="proof">Proof</h3>
-<p>Putting everything down formally, this is what we&rsquo;re tryign to compute:<br>
+            <h2 id="background">Background</h2>
+<p>Im my <a href="/posts/transformation-stack">previous post</a> I left out a few things when talking about tranformations. This post is a follow-up on how the camera far plane in Mapbox <code>gl-js</code> is calculated.
+Correctly computing the far plane distance ensures that everything is rendered/culled properly (in particular in tilted view).</p>
+<h2 id="lets-far-plane">Let&rsquo;s far plane</h2>
+<p>The far plane is affected by the camera&rsquo;s field of view, its pitch and its altitude, \(r\) (which we already covered in the previous post).</p>
+<p>\(\overline{AF}\) is what we are after as seen in the diagram below:
+<img src="/far_plane_length.png" alt="Figure1"></p>
+<p>In right-angle \(\triangle{AMC}\) we have:<br>
 $$
-\iint_{\Omega} f dS
-$$
-The integrand is a function in spherical coordinates, that is \(f(r, \theta, \phi) = \cos^2(\theta) \). Domain of integration is denoted by \(\Omega\)
-which is the surface of a unit sphere. \(dS\) reprensents an infinitesimally small &ldquo;patch&rdquo; over the unit sphere&rsquo;s surface.<br>
-We can describe \(dS\) in terms of \(d\theta\) and \(d\phi\):<br>
-$$
-dS = \sin(\theta) d\phi d\theta
-$$
-As seen in the figure below:<br>
-<img src="/surface_integral_patch.png" alt="Figure1"><br>
-Which you can also see <a href="https://www.geogebra.org/3d/k5rkbmz7">here</a></p>
-<p>Since the sphere is symmetrical we can integrate the first quadrant and multiply the result by 8. Putting everything together:<br>
-$$
-\begin{aligned}
-I &amp;= 8 \int_0^{\pi \over 2} \int_0^{\pi \over 2} cos^2(\theta) \sin(\theta) d\theta d\phi \\ \\
-&amp;= 8 \int_0^{\pi \over 2}  \Bigg(\small - {1 \over 3} \cos^3(\theta) \Bigg)_0^{\pi \over 2} d\phi \\ \\
-&amp;= 8 \Bigg(\small {1 \over 3}\phi \Bigg)_0^{\pi \over 2} = {4 \pi \over 3}
-\end{aligned}
+f = {r \over \cos(pitch)}
 $$</p>
-<h3 id="links">Links</h3>
-<ul>
-<li><a href="https://www.khanacademy.org/math/multivariable-calculus/integrating-multivariable-functions#surface-integrals-articles">https://www.khanacademy.org/math/multivariable-calculus/integrating-multivariable-functions#surface-integrals-articles</a></li>
-<li><a href="https://www.khanacademy.org/math/multivariable-calculus/integrating-multivariable-functions#flux-in-3d-articles">https://www.khanacademy.org/math/multivariable-calculus/integrating-multivariable-functions#flux-in-3d-articles</a></li>
-<li><a href="https://math.mit.edu/~jorloff/suppnotes/suppnotes02/v9.pdf">https://math.mit.edu/~jorloff/suppnotes/suppnotes02/v9.pdf</a></li>
-</ul>
+<p>From elementary geometry we can deduce that \(\angle{CBF} = pitch\) and \(\theta = {\pi \over 2} - fovy - pitch\).</p>
+<p>From law of sines on \(\triangle{ABC}\) we get:</p>
+<p>$$
+{\sin(fovy) \over l} = {\sin(\theta) \over f} \Rightarrow l = {f \sin(fovy) \over \sin(\theta)}
+$$</p>
+<p>In right-angle \(\triangle{CFB}\) we have:
+$$
+g = l \sin(pitch)
+$$</p>
+<p>This concludes the proof:
+$$
+far\ plane\ distance = \overline{AF} = f + g
+$$</p>
 
         </div>
 
@@ -108,13 +101,8 @@ $$</p>
             <h3>Contents</h3>
             <nav id="TableOfContents">
   <ul>
-    <li>
-      <ul>
-        <li><a href="#background">Background</a></li>
-        <li><a href="#proof">Proof</a></li>
-        <li><a href="#links">Links</a></li>
-      </ul>
-    </li>
+    <li><a href="#background">Background</a></li>
+    <li><a href="#lets-far-plane">Let&rsquo;s far plane</a></li>
   </ul>
 </nav>
         </div>
@@ -129,15 +117,9 @@ $$</p>
     
 <nav id="article-nav">
     
-    <a href="/posts/far-z-calculation/" id="article-nav-newer" class="article-nav-link-wrap">
-        <div class="article-nav-title"><span>&lt;</span>&nbsp;
-            Calculating far plane distance in Mapbox gl-js
-        </div>
-    </a>
     
-    
-    <a href="/posts/transformation-stack/" id="article-nav-older" class="article-nav-link-wrap">
-        <div class="article-nav-title">A trip down the transformation pipeline in Mapbox GL-JS&nbsp;<span>&gt;</span></div>
+    <a href="/posts/lightning-cos2-surface-integral/" id="article-nav-older" class="article-nav-link-wrap">
+        <div class="article-nav-title">An analytical solution to the integral of cos^2(theta) over a spherical surface&nbsp;<span>&gt;</span></div>
     </a>
     
 </nav>
