@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Calculating far plane distance in Mapbox gl-js // Whatever Flavour It Happens To Be</title>
+    <title>Ray Segment Intersection // Whatever Flavour It Happens To Be</title>
 
     <meta charset="utf-8">
     <meta http-equiv="content-type" content="text/html; charset=utf-8">
@@ -10,11 +10,11 @@
     
     
 
-        <meta property="og:title" content="Calculating far plane distance in Mapbox gl-js" />
+        <meta property="og:title" content="Ray Segment Intersection" />
     <meta property="og:description" content="" />
     <meta property="og:type" content="website" />
     <meta property="og:locale" content="en" />
-    <meta property="og:url" content="https://akoylasar.github.io/posts/far-z-calculation/" />
+    <meta property="og:url" content="https://akoylasar.github.io/posts/ray-segment-intersect/" />
     
 
     <link rel="shortcut icon" href="/favicon.ico">
@@ -52,46 +52,79 @@
     <div class="article-inner">
         
         <header class="article-header">
-            <h1 class="article-title" itemprop="name">Calculating far plane distance in Mapbox gl-js</h1>
+            <h1 class="article-title" itemprop="name">Ray Segment Intersection</h1>
         </header>
         
         <div class="article-meta">
-            <a href="/posts/far-z-calculation/" class="article-date">
-                <time datetime='2022-07-19T12:00:58.000&#43;02:00' itemprop="datePublished">2022-07-19</time>
+            <a href="/posts/ray-segment-intersect/" class="article-date">
+                <time datetime='2023-08-24T12:37:08.000&#43;02:00' itemprop="datePublished">2023-08-24</time>
             </a>
             
             
             
             <div class="article-comment-link-wrap">
-                <a href="/posts/far-z-calculation/#disqus_thread" class="article-comment-link">Comments</a>
+                <a href="/posts/ray-segment-intersect/#disqus_thread" class="article-comment-link">Comments</a>
             </div>
             
         </div>
         <div class="article-entry" itemprop="articleBody">
-            <h2 id="background">Background</h2>
-<p>In my <a href="/posts/transformation-stack">previous post</a> I left out a few things when talking about tranformations. This post is a follow-up on how the camera far plane in Mapbox <code>gl-js</code> is calculated.
-Correctly computing the far plane distance ensures that everything is rendered/culled properly (in particular in tilted view).</p>
-<h2 id="lets-far-plane">Let&rsquo;s far plane</h2>
-<p>The far plane is affected by the camera&rsquo;s field of view, its pitch and its altitude, \(r\) (which we already covered in the previous post).</p>
-<p>\(\overline{AF}\) is what we are after as seen in the diagram below:
-<img src="/far_plane_length.png" alt="Figure1"></p>
-<p>In right-angle \(\triangle{AMC}\) we have:<br>
+            <p>Let&rsquo;s define line segment \(l\) and ray \(r\) as follows:
 $$
-f = {r \over \cos(pitch)}
-$$</p>
-<p>From elementary geometry we can deduce that \(\angle{CBF} = pitch\) and \(\theta = {\pi \over 2} - fovy - pitch\).</p>
-<p>From law of sines on \(\triangle{ABC}\) we get:</p>
-<p>$$
-{\sin(fovy) \over l} = {\sin(\theta) \over f} \Rightarrow l = {f \sin(fovy) \over \sin(\theta)}
-$$</p>
-<p>In right-angle \(\triangle{CFB}\) we have:
+l: a + u\vec{s},\space\space r: o + t\vec{d}
 $$
-g = l \sin(pitch)
-$$</p>
-<p>This concludes the proof:
+where
 $$
-far\ plane\ distance = \overline{AF} = f + g
-$$</p>
+\vec{s} = b - a,\space\space 0\le u \le 1,\space\space 0 \le t
+$$
+Define
+$$
+\vec{s{\prime}} = (s_y, -s_x),\space\space \vec{d{\prime}} = (d_y, -d_x)
+$$
+\(s . s{\prime} = 0\). This geometric perpendicularity allows for nice algebric cancellations next.</p>
+<p>Dot product is commutative and is distributive over vector addition. We find \(t\):
+$$
+a + u\vec{s} = o + t\vec{d}
+$$
+$$
+(a + u\vec{s}) . \vec{s{\prime}} = (o + t\vec{d}) . \vec{s{\prime}}
+$$
+$$
+a . \vec{s{\prime}} + u(s . \vec{s{\prime}}) = (o + t\vec{d}) . \vec{s{\prime}}
+$$
+$$
+a . \vec{s{\prime}} = (o + t\vec{d}) . \vec{s{\prime}}
+$$
+$$
+t = {\vec{s{\prime}} . (a - o) \over \vec{d} . \vec{s{\prime}}}
+$$
+In a similar way we find \(u\):
+$$
+u = {\vec{d{\prime}} . (o - a) \over \vec{s} . \vec{d{\prime}}}
+$$
+To simplify things let&rsquo;s define the following operation for vectors \(v\) and \(w\):
+$$
+v \times w = v_x w_y - v_y w_x
+$$
+We can see that:
+$$
+\vec{d} . \vec{s{\prime}} = \vec{d} \times \vec{s}, \space\space\space\space \vec{s{\prime}} . (a - o) = (a - o) \times \vec{s}
+$$
+$$
+\vec{s} . \vec{d{\prime}} = \vec{s} \times \vec{d}, \space\space\space\space \vec{d{\prime}} . (o - a) = (o - a) \times \vec{d}
+$$
+Therefore:
+$$
+t = {(a - o) \times \vec{s} \over \vec{d} \times \vec{s}}, \space\space\space\space u = {(o - a) \times \vec{d} \over \vec{s} \times \vec{d}}
+$$
+since
+$$
+v \times w = -w \times v
+$$
+$$
+t = {(a - o) \times \vec{s} \over \vec{d} \times \vec{s}}, \space\space\space\space u = {(a - o) \times \vec{d} \over \vec{d} \times \vec{s}}
+$$
+A solution (intersection) exists only if \(\vec{d} \times \vec{s} \ne 0\), \(t \ge 0 \) and \( 0\le u \le 1\).</p>
+<iframe src="https://www.geogebra.org/calculator/ghnqpn8v?embed" width="800" height="600" allowfullscreen style="border: 1px solid #e4e4e4;border-radius: 4px;" frameborder="0"></iframe>
 
         </div>
 
@@ -99,12 +132,7 @@ $$</p>
         
         <div class="article-toc" >
             <h3>Contents</h3>
-            <nav id="TableOfContents">
-  <ul>
-    <li><a href="#background">Background</a></li>
-    <li><a href="#lets-far-plane">Let&rsquo;s far plane</a></li>
-  </ul>
-</nav>
+            <nav id="TableOfContents"></nav>
         </div>
         
         
@@ -117,15 +145,9 @@ $$</p>
     
 <nav id="article-nav">
     
-    <a href="/posts/ray-segment-intersect/" id="article-nav-newer" class="article-nav-link-wrap">
-        <div class="article-nav-title"><span>&lt;</span>&nbsp;
-            Ray Segment Intersection
-        </div>
-    </a>
     
-    
-    <a href="/posts/lightning-cos2-surface-integral/" id="article-nav-older" class="article-nav-link-wrap">
-        <div class="article-nav-title">An analytical solution to the integral of cos^2(theta) over a spherical surface&nbsp;<span>&gt;</span></div>
+    <a href="/posts/far-z-calculation/" id="article-nav-older" class="article-nav-link-wrap">
+        <div class="article-nav-title">Calculating far plane distance in Mapbox gl-js&nbsp;<span>&gt;</span></div>
     </a>
     
 </nav>

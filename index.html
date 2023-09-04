@@ -25,7 +25,7 @@
     <link rel="stylesheet" href="https://akoylasar.github.io/css/style.css">
     
 
-    <meta name="generator" content="Hugo 0.100.1" />
+    <meta name="generator" content="Hugo 0.117.0">
 </head>
 
 <body>
@@ -47,6 +47,41 @@
 </header>
 
     <section id="main" class="outer">
+        
+        <article class="article article-type-post" itemscope itemprop="blogPost">
+            <div class="article-inner">
+                
+                
+                <header class="article-header">
+                    <h1 itemprop="name"><a class="article-title" href="/posts/ray-segment-intersect/">Ray Segment Intersection</a></h1>
+                </header>
+                
+                <div class="article-meta">
+                    <a href="/posts/ray-segment-intersect/" class="article-date">
+                        <time datetime='2023-08-24T12:37:08.000&#43;02:00' itemprop="datePublished">2023-08-24</time>
+                    </a>
+                    
+                    
+                    
+                    <div class="article-comment-link-wrap">
+                        <a href="/posts/ray-segment-intersect/#disqus_thread" class="article-comment-link">Comments</a>
+                    </div>
+                    
+                </div>
+                <div class="article-entry" itemprop="articleBody">
+                    <p>
+                        
+                    Let&rsquo;s define line segment \(l\) and ray \(r\) as follows: $$ l: a + u\vec{s},\space\space r: o + t\vec{d} $$ where $$ \vec{s} = b - a,\space\space 0\le u \le 1,\space\space 0 \le t $$ Define $$ \vec{s{\prime}} = (s_y, -s_x),\space\space \vec{d{\prime}} = (d_y, -d_x) $$ \(s . s{\prime} = 0\). This geometric perpendicularity allows for nice algebric cancellations next.
+Dot product is commutative and is distributive over vector addition. We find \(t\): $$ a + u\vec{s} = o + t\vec{d} $$ $$ (a + u\vec{s}) .
+                    </p>
+                    <p class="article-more-link">
+                        <a href="/posts/ray-segment-intersect/">Read More</a>
+                    </p>
+                </div>
+
+                
+            </div>
+        </article>
         
         <article class="article article-type-post" itemscope itemprop="blogPost">
             <div class="article-inner">
@@ -165,7 +200,7 @@ Let&rsquo;s go!
     <footer id="footer">
     <div class="outer">
         <div id="footer-info" class="inner">
-            &copy; 2022 Whatever Flavour It Happens To Be
+            &copy; 2023 Whatever Flavour It Happens To Be
             <br />
             Powered by <a href="https://gohugo.io" target="_blank">Hugo</a> with theme <a href="https://github.com/carsonip/hugo-theme-minos" target="_blank">Minos</a>
         </div>

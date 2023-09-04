@@ -6,7 +6,17 @@
     <description>Recent content in Posts on Whatever Flavour It Happens To Be</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en-us</language>
-    <lastBuildDate>Tue, 19 Jul 2022 12:00:58 +0200</lastBuildDate><atom:link href="https://akoylasar.github.io/posts/index.xml" rel="self" type="application/rss+xml" />
+    <lastBuildDate>Thu, 24 Aug 2023 12:37:08 +0200</lastBuildDate><atom:link href="https://akoylasar.github.io/posts/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>Ray Segment Intersection</title>
+      <link>https://akoylasar.github.io/posts/ray-segment-intersect/</link>
+      <pubDate>Thu, 24 Aug 2023 12:37:08 +0200</pubDate>
+      
+      <guid>https://akoylasar.github.io/posts/ray-segment-intersect/</guid>
+      <description>Let&amp;rsquo;s define line segment \(l\) and ray \(r\) as follows: $$ l: a + u\vec{s},\space\space r: o + t\vec{d} $$ where $$ \vec{s} = b - a,\space\space 0\le u \le 1,\space\space 0 \le t $$ Define $$ \vec{s{\prime}} = (s_y, -s_x),\space\space \vec{d{\prime}} = (d_y, -d_x) $$ \(s . s{\prime} = 0\). This geometric perpendicularity allows for nice algebric cancellations next.
+Dot product is commutative and is distributive over vector addition. We find \(t\): $$ a + u\vec{s} = o + t\vec{d} $$ $$ (a + u\vec{s}) .</description>
+    </item>
+    
     <item>
       <title>Calculating far plane distance in Mapbox gl-js</title>
       <link>https://akoylasar.github.io/posts/far-z-calculation/</link>
